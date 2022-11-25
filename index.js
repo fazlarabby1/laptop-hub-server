@@ -19,6 +19,7 @@ async function run() {
         const categoriesCollection = client.db('laptopResaler').collection('categories');
         const productsCollection = client.db('laptopResaler').collection('products');
         const usersCollection = client.db('laptopResaler').collection('users');
+        const bookingsCollection = client.db('laptopResaler').collection('bookings');
 
         app.get('/categories', async(req, res)=>{
             const query = {};
@@ -27,7 +28,6 @@ async function run() {
         })
         app.get('/products/:id', async(req, res)=>{
             const id = req.params.id;
-            console.log(id);
             const query = {categoryId: id};
             const products = await productsCollection.find(query).toArray();
             res.send(products);
@@ -37,6 +37,20 @@ async function run() {
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
+        app.post('/bookings', async(req, res)=>{
+            const booking = req.body;
+            const query = {
+                email: booking.email,
+                productName: booking.productName
+            }
+            const booked = await bookingsCollection.find(query).toArray();
+            if(booked.length){
+                const message = `You already booked ${booking.productName}`;
+                return res.send({acknowledged: false, message});
+            }
+            const result = await bookingsCollection.insertOne(booking);
+            res.send(result);
+        });
     }
     finally {
 
