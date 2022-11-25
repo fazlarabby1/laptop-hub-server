@@ -21,35 +21,45 @@ async function run() {
         const usersCollection = client.db('laptopResaler').collection('users');
         const bookingsCollection = client.db('laptopResaler').collection('bookings');
 
-        app.get('/categories', async(req, res)=>{
+        // category API
+        app.get('/categories', async (req, res) => {
             const query = {};
             const result = await categoriesCollection.find(query).toArray();
             res.send(result);
         })
-        app.get('/products/:id', async(req, res)=>{
+        // products API
+        app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {categoryId: id};
+            const query = { categoryId: id };
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
-        app.post('/users', async(req, res)=>{
+        // users API
+        app.post('/users', async (req, res) => {
             const user = req.body;
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
-        app.post('/bookings', async(req, res)=>{
+        // bookings API
+        app.post('/bookings', async (req, res) => {
             const booking = req.body;
             const query = {
                 email: booking.email,
                 productName: booking.productName
             }
             const booked = await bookingsCollection.find(query).toArray();
-            if(booked.length){
+            if (booked.length) {
                 const message = `You already booked ${booking.productName}`;
-                return res.send({acknowledged: false, message});
+                return res.send({ acknowledged: false, message });
             }
             const result = await bookingsCollection.insertOne(booking);
             res.send(result);
+        });
+        app.get('/bookings', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email }
+            const bookings = await bookingsCollection.find(query).toArray();
+            res.send(bookings);
         });
     }
     finally {
@@ -59,10 +69,10 @@ async function run() {
 run().catch(err => console.log(err))
 
 
-app.get('/', (req, res)=>{
+app.get('/', (req, res) => {
     res.send('Hey, laptop resale is running Yayy');
 })
 
-app.listen(port, () =>{
+app.listen(port, () => {
     console.log(`Ok I am running on port: ${port}`);
 })
