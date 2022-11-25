@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 const app = express();
@@ -42,9 +42,21 @@ async function run() {
         })
         app.get('/users/sellers', async (req, res) => {
             const accountType = "seller";
-            const query = {accountType: accountType}
+            const query = { accountType: accountType }
             const sellers = await usersCollection.find(query).toArray();
             res.send(sellers);
+        })
+        app.put('/users/sellers/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const option = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    verify: 'verified'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updatedDoc, option);
+            res.send(result);
         })
         // bookings API
         app.post('/bookings', async (req, res) => {
