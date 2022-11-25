@@ -40,6 +40,12 @@ async function run() {
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
+        app.get('/users/sellers', async (req, res) => {
+            const accountType = "seller";
+            const query = {accountType: accountType}
+            const sellers = await usersCollection.find(query).toArray();
+            res.send(sellers);
+        })
         // bookings API
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
