@@ -64,6 +64,12 @@ async function run() {
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
+        app.get('/users/allcustomers', async (req, res) => {
+            const accountType = "user";
+            const query = { accountType: accountType }
+            const randomUsers = await usersCollection.find(query).toArray();
+            res.send(randomUsers);
+        })
         // bookings API
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
