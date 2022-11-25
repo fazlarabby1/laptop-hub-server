@@ -58,6 +58,12 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updatedDoc, option);
             res.send(result);
         })
+        app.delete('/users/sellers/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
+        })
         // bookings API
         app.post('/bookings', async (req, res) => {
             const booking = req.body;
