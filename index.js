@@ -48,6 +48,26 @@ async function run() {
             const result = await productsCollection.insertOne(product);
             res.send(result);
         })
+
+        app.delete('/myproducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await productsCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        app.put('/myproducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const option = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    advertise: 'advertised'
+                }
+            }
+            const result = await productsCollection.updateOne(filter, updatedDoc, option);
+            res.send(result);
+        })
         // users API
         app.post('/users', async (req, res) => {
             const user = req.body;
