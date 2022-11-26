@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require("stripe")(process.env.STRIPT_SK);
 const port = process.env.PORT || 5000;
 
 const app = express();
@@ -20,6 +21,7 @@ async function run() {
         const productsCollection = client.db('laptopResaler').collection('products');
         const usersCollection = client.db('laptopResaler').collection('users');
         const bookingsCollection = client.db('laptopResaler').collection('bookings');
+        const paymentsCollection = client.db('laptopResaler').collection('payments');
 
         // category API
         app.get('/categories', async (req, res) => {
@@ -146,12 +148,62 @@ async function run() {
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings);
         });
+
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const product = await bookingsCollection.findOne(query);
+            res.send(product);
+        })
+
         app.delete('/bookings/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await bookingsCollection.deleteOne(query);
             res.send(result);
         });
+
+        // payment APIs
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                "payment_method_types": [
+                    "card"
+                ]
+            });
+            console.log(paymentIntent);
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            });
+        });
+        app.post('/payments', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+            const id = payment.bookingId;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updateResult = await bookingsCollection.updateOne(filter, updatedDoc);
+
+            const productId = payment.productId;
+            const query = { _id: ObjectId(productId) };
+            const updatedProduct = {
+                $set: {
+                    paid: true
+                }
+            }
+            const updatedProductResult = await productsCollection.updateOne(query, updatedProduct);
+            res.send(result);
+        })
     }
     finally {
 
