@@ -36,6 +36,13 @@ async function run() {
             res.send(products);
         })
 
+        app.get('/advertisedproducts', async (req, res) => {
+            const advertise = 'advertised';
+            const query = { advertise: advertise };
+            const products = await productsCollection.find(query).toArray();
+            res.send(products);
+        })
+
         app.get('/myproducts', async (req, res) => {
             const email = req.query.email;
             const query = { sellerEmail: email };
@@ -69,9 +76,9 @@ async function run() {
             res.send(result);
         })
         // users API
-        app.get('/user/seller', async (req, res)=>{
+        app.get('/user/seller', async (req, res) => {
             const email = req.query.email;
-            const query = {email: email};
+            const query = { email: email };
             const result = await usersCollection.findOne(query);
             res.send(result);
         })
@@ -138,6 +145,12 @@ async function run() {
             const query = { email: email }
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings);
+        });
+        app.delete('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await bookingsCollection.deleteOne(query);
+            res.send(result);
         });
     }
     finally {
