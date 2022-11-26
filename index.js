@@ -27,6 +27,7 @@ async function run() {
             const result = await categoriesCollection.find(query).toArray();
             res.send(result);
         })
+
         // products API
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
@@ -34,12 +35,18 @@ async function run() {
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
+        app.post('/products', async (req, res) => {
+            const product = req.body;
+            const result = await productsCollection.insertOne(product);
+            res.send(result);
+        })
         // users API
         app.post('/users', async (req, res) => {
             const user = req.body;
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
+        // sellers API
         app.get('/users/sellers', async (req, res) => {
             const accountType = "seller";
             const query = { accountType: accountType }
@@ -64,11 +71,18 @@ async function run() {
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
+        // customers API
         app.get('/users/allcustomers', async (req, res) => {
             const accountType = "user";
             const query = { accountType: accountType }
             const randomUsers = await usersCollection.find(query).toArray();
             res.send(randomUsers);
+        })
+        app.delete('/users/allcustomers/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
         })
         // bookings API
         app.post('/bookings', async (req, res) => {
