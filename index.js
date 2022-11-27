@@ -16,6 +16,22 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.5i4qdkw.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send('unauthorized access');
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'forbidden access' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
 async function run() {
     try {
         const categoriesCollection = client.db('laptopResaler').collection('categories');
@@ -47,7 +63,7 @@ async function run() {
             res.send(products);
         })
 
-        app.get('/myproducts', async (req, res) => {
+        app.get('/myproducts', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const query = { sellerEmail: email };
             const products = await productsCollection.find(query).toArray();
@@ -60,14 +76,14 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/myproducts/:id', async (req, res) => {
+        app.delete('/myproducts/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await productsCollection.deleteOne(query);
             res.send(result);
         })
 
-        app.put('/myproducts/:id', async (req, res) => {
+        app.put('/myproducts/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const option = { upsert: true };
@@ -83,10 +99,10 @@ async function run() {
         // jwt API
         app.get('/jwt', async (req, res) => {
             const email = req.query.email;
-            const query = {email: email};
+            const query = { email: email };
             const user = await usersCollection.findOne(query);
-            if(user){
-                const token = jwt.sign({email}, process.env.ACCESS_TOKEN,{expiresIn: '1d'})
+            if (user) {
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
                 return res.send({ accessToken: token });
             }
             res.status(403).send({ accessToken: '' })
@@ -104,13 +120,13 @@ async function run() {
             res.send(result);
         })
         // sellers API
-        app.get('/users/sellers', async (req, res) => {
+        app.get('/users/sellers', verifyJWT, async (req, res) => {
             const accountType = "seller";
             const query = { accountType: accountType }
             const sellers = await usersCollection.find(query).toArray();
             res.send(sellers);
         })
-        app.put('/users/sellers/:id', async (req, res) => {
+        app.put('/users/sellers/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const option = { upsert: true };
@@ -122,27 +138,27 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updatedDoc, option);
             res.send(result);
         })
-        app.delete('/users/sellers/:id', async (req, res) => {
+        app.delete('/users/sellers/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
         // customers API
-        app.get('/users/allcustomers', async (req, res) => {
+        app.get('/users/allcustomers', verifyJWT, async (req, res) => {
             const accountType = "user";
             const query = { accountType: accountType }
             const randomUsers = await usersCollection.find(query).toArray();
             res.send(randomUsers);
         })
-        app.delete('/users/allcustomers/:id', async (req, res) => {
+        app.delete('/users/allcustomers/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
         // bookings API
-        app.post('/bookings', async (req, res) => {
+        app.post('/bookings', verifyJWT, async (req, res) => {
             const booking = req.body;
             const query = {
                 email: booking.email,
@@ -156,7 +172,7 @@ async function run() {
             const result = await bookingsCollection.insertOne(booking);
             res.send(result);
         });
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings', verifyJWT, async (req, res) => {
             const email = req.query.email;
             const query = { email: email }
             const bookings = await bookingsCollection.find(query).toArray();
@@ -170,7 +186,7 @@ async function run() {
             res.send(product);
         })
 
-        app.delete('/bookings/:id', async (req, res) => {
+        app.delete('/bookings/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await bookingsCollection.deleteOne(query);
@@ -178,7 +194,7 @@ async function run() {
         });
 
         // payment APIs
-        app.post('/create-payment-intent', async (req, res) => {
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
             const booking = req.body;
             const price = booking.price;
             const amount = price * 100;
@@ -195,7 +211,7 @@ async function run() {
                 clientSecret: paymentIntent.client_secret
             });
         });
-        app.post('/payments', async (req, res) => {
+        app.post('/payments', verifyJWT, async (req, res) => {
             const payment = req.body;
             const result = await paymentsCollection.insertOne(payment);
             const id = payment.bookingId;
