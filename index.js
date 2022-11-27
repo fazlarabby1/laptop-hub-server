@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const jwt = require('jsonwebtoken');
 const stripe = require("stripe")(process.env.STRIPT_SK);
 const port = process.env.PORT || 5000;
 
@@ -33,7 +34,7 @@ async function run() {
         // products API
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {$and: [{ categoryId: id }, { paid: { $ne: true } }]};
+            const query = { $and: [{ categoryId: id }, { paid: { $ne: true } }] };
             // { quantity: { $ne: 20 } }
             const products = await productsCollection.find(query).toArray();
             res.send(products);
@@ -41,7 +42,7 @@ async function run() {
 
         app.get('/advertisedproducts', async (req, res) => {
             const advertise = 'advertised';
-            const query = {$and: [{ advertise: advertise }, { paid: { $ne: true } }]};
+            const query = { $and: [{ advertise: advertise }, { paid: { $ne: true } }] };
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
@@ -77,6 +78,18 @@ async function run() {
             }
             const result = await productsCollection.updateOne(filter, updatedDoc, option);
             res.send(result);
+        })
+
+        // jwt API
+        app.get('/jwt', async (req, res) => {
+            const email = req.query.email;
+            const query = {email: email};
+            const user = await usersCollection.findOne(query);
+            if(user){
+                const token = jwt.sign({email}, process.env.ACCESS_TOKEN,{expiresIn: '1d'})
+                return res.send({ accessToken: token });
+            }
+            res.status(403).send({ accessToken: '' })
         })
         // users API
         app.get('/user/seller', async (req, res) => {
