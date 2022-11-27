@@ -33,14 +33,15 @@ async function run() {
         // products API
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { categoryId: id };
+            const query = {$and: [{ categoryId: id }, { paid: { $ne: true } }]};
+            // { quantity: { $ne: 20 } }
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
 
         app.get('/advertisedproducts', async (req, res) => {
             const advertise = 'advertised';
-            const query = { advertise: advertise };
+            const query = {$and: [{ advertise: advertise }, { paid: { $ne: true } }]};
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         })
