@@ -39,7 +39,6 @@ async function run() {
         const usersCollection = client.db('laptopResaler').collection('users');
         const bookingsCollection = client.db('laptopResaler').collection('bookings');
         const wishCollection = client.db('laptopResaler').collection('wish');
-        const paymentsCollection = client.db('laptopResaler').collection('payments');
 
         const verifyAdmin = async (req, res, next) => {
             const decodedEmail = req.decoded.email;
@@ -103,13 +102,6 @@ async function run() {
         app.post('/products', async (req, res) => {
             const product = req.body;
             const result = await productsCollection.insertOne(product);
-            res.send(result);
-        })
-
-        app.post('/wishproducts', async (req, res) => {
-            const product = req.body;
-            console.log(product)
-            const result = await wishCollection.insertOne(product);
             res.send(result);
         })
 
@@ -216,9 +208,22 @@ async function run() {
             const result = await bookingsCollection.insertOne(booking);
             res.send(result);
         });
+
+        app.post('/bookingwish', verifyJWT, async (req, res) => {
+            const booking = req.body;
+            const result = await bookingsCollection.insertOne(booking);
+            res.send(result);
+        })
+        app.get('/bookingwish', async (req, res) => {
+            const email = req.query.email;
+            const query = { $and: [{ email: email }, { wish: { $eq: 'wished' } }] }
+            const product = await bookingsCollection.find(query).toArray();
+            res.send(product);
+        })
+
         app.get('/bookings', verifyJWT, async (req, res) => {
             const email = req.query.email;
-            const query = { email: email }
+            const query = { $and: [{ email: email }, { wish: { $ne: 'wished' } }] }
             const bookings = await bookingsCollection.find(query).toArray();
             res.send(bookings);
         });
