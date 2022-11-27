@@ -38,7 +38,19 @@ async function run() {
         const productsCollection = client.db('laptopResaler').collection('products');
         const usersCollection = client.db('laptopResaler').collection('users');
         const bookingsCollection = client.db('laptopResaler').collection('bookings');
+        const wishCollection = client.db('laptopResaler').collection('wish');
         const paymentsCollection = client.db('laptopResaler').collection('payments');
+
+        const verifyAdmin = async (req, res, next) => {
+            const decodedEmail = req.decoded.email;
+            const query = { email: decodedEmail };
+            const user = await usersCollection.findOne(query);
+
+            if (user?.accountType !== 'admin') {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+            next();
+        }
 
         // category API
         app.get('/categories', async (req, res) => {
@@ -51,9 +63,27 @@ async function run() {
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
             const query = { $and: [{ categoryId: id }, { paid: { $ne: true } }] };
-            // { quantity: { $ne: 20 } }
             const products = await productsCollection.find(query).toArray();
             res.send(products);
+        })
+
+        app.put('/products/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const option = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    report: true
+                }
+            }
+            const result = await productsCollection.updateOne(filter, updatedDoc, option);
+            res.send(result);
+        })
+
+        app.get('/reportedproducts', async (req, res) => {
+            const query = { report: { $eq: true } };
+            const reportedProducts = await productsCollection.find(query).toArray();
+            res.send(reportedProducts);
         })
 
         app.get('/advertisedproducts', async (req, res) => {
@@ -76,7 +106,14 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/myproducts/:id', verifyJWT, async (req, res) => {
+        app.post('/wishproducts', async (req, res) => {
+            const product = req.body;
+            console.log(product)
+            const result = await wishCollection.insertOne(product);
+            res.send(result);
+        })
+
+        app.delete('/products/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await productsCollection.deleteOne(query);
@@ -119,7 +156,7 @@ async function run() {
             const email = req.query.email;
             const query = { email: email };
             const result = await usersCollection.findOne(query);
-            res.send([result, {isSeller: result?.accountType === 'seller'}]);
+            res.send([result, { isSeller: result?.accountType === 'seller' }]);
         })
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -127,13 +164,13 @@ async function run() {
             res.send(result);
         })
         // sellers API
-        app.get('/users/sellers', verifyJWT, async (req, res) => {
+        app.get('/users/sellers', verifyJWT, verifyAdmin, async (req, res) => {
             const accountType = "seller";
             const query = { accountType: accountType }
             const sellers = await usersCollection.find(query).toArray();
             res.send(sellers);
         })
-        app.put('/users/sellers/:id', verifyJWT, async (req, res) => {
+        app.put('/users/sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const option = { upsert: true };
@@ -145,20 +182,20 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updatedDoc, option);
             res.send(result);
         })
-        app.delete('/users/sellers/:id', verifyJWT, async (req, res) => {
+        app.delete('/users/sellers/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         })
         // customers API
-        app.get('/users/allcustomers', verifyJWT, async (req, res) => {
+        app.get('/users/allcustomers', verifyJWT, verifyAdmin, async (req, res) => {
             const accountType = "user";
             const query = { accountType: accountType }
             const randomUsers = await usersCollection.find(query).toArray();
             res.send(randomUsers);
         })
-        app.delete('/users/allcustomers/:id', verifyJWT, async (req, res) => {
+        app.delete('/users/allcustomers/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
