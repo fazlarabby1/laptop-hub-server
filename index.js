@@ -108,11 +108,18 @@ async function run() {
             res.status(403).send({ accessToken: '' })
         })
         // users API
+        app.get('/user/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isAdmin: user?.accountType === 'admin' });
+        })
+
         app.get('/user/seller', async (req, res) => {
             const email = req.query.email;
             const query = { email: email };
             const result = await usersCollection.findOne(query);
-            res.send(result);
+            res.send([result, {isSeller: result?.accountType === 'seller'}]);
         })
         app.post('/users', async (req, res) => {
             const user = req.body;
